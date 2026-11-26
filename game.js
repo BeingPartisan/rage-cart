@@ -135,162 +135,108 @@ if (sawPrank) {
   showResult(false);
 }
 
+const ink = "#171526";
+const wall = "#29233c";
+const steel = "#504269";
+const violet = "#806b9d";
+const amber = "#ffc665";
+const cream = "#fff0ba";
+
+function rect(color, x, y, width, height) {
+  ctx.fillStyle = color;
+  ctx.fillRect(Math.round(x), Math.round(y), width, height);
+}
+
 function drawBackdrop() {
-  const sky = ctx.createLinearGradient(0, 0, 0, 350);
-  sky.addColorStop(0, "#183032");
-  sky.addColorStop(.58, "#385450");
-  sky.addColorStop(1, "#a2926e");
-  ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, 960, 400);
-
-  ctx.fillStyle = "#d9c799";
-  ctx.beginPath();
-  ctx.arc(768 - camera * .09, 105, 36, 0, Math.PI * 2);
-  ctx.fill();
-
-  for (let i = 0; i < 19; i++) {
-    const x = i * 82 - camera * .28;
-    const height = 25 + (i * 53) % 87;
-    const y = 267 - height;
-    ctx.fillStyle = i % 2 ? "#304a46" : "#39534d";
-    ctx.fillRect(x, y, 74, height);
-    ctx.fillStyle = "#a69b72";
-    for (let window = 0; window < 4; window++) {
-      if ((i + window) % 3 === 0) ctx.fillRect(x + 9 + window * 13, y + 11, 4, 2);
-    }
+  rect(ink, 0, 0, 960, 400);
+  const offset = Math.round(camera * .32 / 4) * 4;
+  rect(wall, 0, 168, 960, 232);
+  for (let x = -offset % 124 - 124; x < 960; x += 124) {
+    rect(steel, x + 8, 52, 8, 260);
+    rect(wall, x + 16, 52, 8, 260);
+    rect(ink, x + 42, 194, 64, 90);
+    rect(steel, x + 48, 200, 52, 4);
+    for (let y = 212; y < 276; y += 12) rect(wall, x + 48, y, 52, 4);
   }
-
-  ctx.fillStyle = "#263936";
-  ctx.fillRect(0, 270, 960, 130);
-  ctx.strokeStyle = "#587065";
-  ctx.lineWidth = 1;
-  for (let x = -(camera * .52 % 34); x < 960; x += 34) {
-    ctx.beginPath();
-    ctx.moveTo(x, 267);
-    ctx.lineTo(x, 314);
-    ctx.stroke();
-  }
-  ctx.fillRect(0, 308, 960, 92);
-  for (let x = 130 - camera * .55; x < 960; x += 291) {
-    const light = ctx.createRadialGradient(x + 17, 170, 1, x + 17, 170, 74);
-    light.addColorStop(0, "#f9d99442");
-    light.addColorStop(1, "#f9d99400");
-    ctx.fillStyle = light;
-    ctx.fillRect(x - 57, 96, 148, 148);
-    ctx.fillStyle = "#172826";
-    ctx.fillRect(x, 167, 4, 143);
-    ctx.fillRect(x, 165, 28, 4);
-    ctx.fillStyle = "#f9d994";
-    ctx.fillRect(x + 10, 169, 18, 3);
+  rect(steel, 0, 48, 960, 4);
+  rect(wall, 0, 52, 960, 12);
+  rect(ink, 0, 288, 960, 112);
+  for (let x = 68 - offset % 248; x < 960; x += 248) {
+    rect(steel, x, 96, 56, 8);
+    rect("#9b7459", x + 4, 104, 48, 4);
+    rect(amber, x + 8, 104, 40, 4);
   }
 }
 
 function drawPlatforms() {
   for (const [start, end] of platforms) {
-    ctx.fillStyle = "#1b2826";
-    ctx.fillRect(start, floor, end - start, 88);
-    ctx.fillStyle = "#46564e";
-    ctx.fillRect(start, floor, end - start, 18);
-    ctx.fillStyle = "#819083";
-    ctx.fillRect(start, floor, end - start, 2);
-    ctx.fillStyle = "#2c3d37";
-    ctx.fillRect(start, floor + 25, end - start, 2);
-    for (let x = start + 15; x + 24 < end; x += 61) {
-      ctx.fillRect(x, floor + 27, 2, 61);
-      ctx.fillStyle = "#b6a46d";
-      ctx.fillRect(x + 7, floor + 10, 23, 2);
-      ctx.fillStyle = "#2c3d37";
+    rect(wall, start, floor, end - start, 88);
+    rect(steel, start, floor, end - start, 14);
+    rect(violet, start, floor, end - start, 4);
+    for (let y = floor + 16; y < 396; y += 18) {
+      rect(ink, start, y, end - start, 2);
+      for (let x = start + (y % 4 ? 12 : 32); x < end - 4; x += 42) rect(ink, x, y, 2, 18);
     }
-    for (const edge of [start, end - 25]) {
-      ctx.fillStyle = "#e7b84d";
-      ctx.fillRect(edge, floor, 25, 12);
-      ctx.fillStyle = "#252c27";
-      for (let stripe = 4; stripe < 24; stripe += 8) {
-        ctx.beginPath();
-        ctx.moveTo(edge + stripe, floor);
-        ctx.lineTo(edge + stripe + 4, floor);
-        ctx.lineTo(edge + stripe, floor + 12);
-        ctx.lineTo(edge + stripe - 4, floor + 12);
-        ctx.fill();
+    for (const edge of [start, end - 24]) {
+      rect(amber, edge, floor, 24, 8);
+      for (let x = edge + 4; x < edge + 24; x += 8) {
+        rect(ink, x, floor, 4, 4);
+        rect(ink, x - 4, floor + 4, 4, 4);
       }
     }
   }
 }
 
 function drawSigns() {
-  ctx.font = "bold 13px monospace";
+  ctx.font = "bold 16px monospace";
   ctx.textAlign = "center";
   for (const [x, label, color] of [
-    [216, "SPRINT TEST", "#e8debd"], [418, "JUMP", "#f6cb57"],
-    [570, "CHECKPOINT", "#a9dcc1"], [752, "JUMP", "#f6cb57"],
-    [960, "CHECKPOINT", "#a9dcc1"], [1134, "LONG JUMP", "#f6cb57"],
-    [1650, "CART RETURN", "#a9dcc1"]
+    [96, "A / D  MOVE", cream], [230, "ALT  SPRINT", cream],
+    [418, `${keyLabels[jumpKey]}  JUMP`, amber], [570, "CHECKPOINT", "#a9dfbd"],
+    [752, `${keyLabels[jumpKey]}  JUMP`, amber], [960, "CHECKPOINT", "#a9dfbd"],
+    [1134, "LONG JUMP", amber], [1650, "CART RETURN", "#a9dfbd"]
   ]) {
-    const width = ctx.measureText(label).width + 24;
-    ctx.fillStyle = "#263431";
-    ctx.fillRect(x - 2, floor - 57, 4, 57);
-    ctx.fillStyle = "#172523";
-    ctx.fillRect(x - width / 2, floor - 78, width, 26);
-    ctx.strokeStyle = color;
-    ctx.strokeRect(x - width / 2 + .5, floor - 77.5, width - 1, 25);
+    const width = Math.ceil(ctx.measureText(label).width / 4) * 4 + 24;
+    rect(steel, x - 2, floor - 54, 4, 54);
+    rect(color, x - width / 2, floor - 78, width, 28);
+    rect(ink, x - width / 2 + 2, floor - 76, width - 4, 24);
     ctx.fillStyle = color;
-    ctx.fillText(label, x, floor - 60);
+    ctx.fillText(label, x, floor - 59);
   }
 }
 
+// Each cell maps to one palette color in the cart sprite.
+const cartSprite = [
+  "AA..........",
+  ".C..........",
+  "..CCCCCCCCCC",
+  "..CVCVCVCVC.",
+  "...CVCVCVC..",
+  "...CCCCCCC..",
+  "....C.......",
+  "....CCCCCC..",
+  "....I...I...",
+  "....V...V..."
+];
+const spriteColors = {A: amber, C: cream, V: violet, I: ink};
+
 function drawCart() {
-  if (cart.grounded) {
-    ctx.fillStyle = "#10171555";
-    ctx.beginPath();
-    ctx.ellipse(cart.x, floor - 1, 25, 4, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.translate(cart.x, cart.y - 15);
-  ctx.rotate(Math.max(-.22, Math.min(.22, cart.vy * .022)));
-  ctx.lineJoin = "round";
-  ctx.fillStyle = "#3a4540";
-  ctx.strokeStyle = "#ecede1";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(-19, -19);
-  ctx.lineTo(23, -19);
-  ctx.lineTo(17, -4);
-  ctx.lineTo(-13, -4);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(-29, -23);
-  ctx.lineTo(-22, -23);
-  ctx.lineTo(-11, 5);
-  ctx.lineTo(17, 5);
-  ctx.moveTo(-15, -11);
-  ctx.lineTo(20, -11);
-  for (let x = -9; x < 20; x += 7) {
-    ctx.moveTo(x, -18);
-    ctx.lineTo(x - 1, -5);
-  }
-  ctx.stroke();
-  ctx.fillStyle = "#f6cb57";
-  ctx.fillRect(-31, -25, 10, 4);
-  for (const x of [-10, 15]) {
-    ctx.fillStyle = "#131817";
-    ctx.beginPath();
-    ctx.arc(x, 10, 5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#d8dacc";
-    ctx.beginPath();
-    ctx.arc(x, 10, 2, 0, Math.PI * 2);
-    ctx.fill();
+  const left = Math.round((cart.x - 24) / 2) * 2;
+  const top = Math.round((cart.y - 40) / 2) * 2;
+  for (const [row, cells] of cartSprite.entries()) {
+    for (const [column, cell] of [...cells].entries()) {
+      if (spriteColors[cell]) rect(spriteColors[cell], left + column * 4, top + row * 4, 4, 4);
+    }
   }
 }
 
 function draw() {
   const target = Math.max(0, Math.min(cart.x - 275, 790));
   camera += (target - camera) * .16;
+  ctx.setTransform(.5, 0, 0, .5, 0, 0);
   drawBackdrop();
   ctx.save();
-  ctx.translate(-camera, 0);
+  ctx.translate(-Math.round(camera / 2) * 2, 0);
   drawPlatforms();
   drawSigns();
   drawCart();
@@ -326,4 +272,5 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+
 

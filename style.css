@@ -45,3 +45,22 @@ dialog p { color: var(--muted); }
   .instructions { align-items: start; flex-direction: column; }
   .track-bar, .instructions { padding-inline: 12px; }
 }
+
+/* Low-resolution playfield in a compact game-first frame. */
+:root {
+  --background: #14111e;
+  --surface: #211b2e;
+  --edge: #59466b;
+  --text: #fff0ba;
+  --muted: #c2afc9;
+  --yellow: #ffc665;
+  font-family: ui-monospace, Consolas, monospace;
+}
+main { width: min(960px, calc(100% - 32px)); }
+.masthead { margin-bottom: 15px; }
+.eyebrow { margin-bottom: 4px; }
+h1 { font-size: clamp(2rem, 6vw, 4rem); font-style: normal; line-height: 1; letter-spacing: -.07em; }
+.cabinet, dialog, button, select, kbd { border-radius: 0; }
+canvas { image-rendering: pixelated; background: #171526; }
+.track-bar { border-bottom: 1px solid var(--edge); }
+.instructions { border-top: 1px solid var(--edge); }
