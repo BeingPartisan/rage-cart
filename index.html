@@ -1,17 +1,48 @@
 <!doctype html>
 <html lang="en">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rage Cart — the parking lot platformer</title>
-<style>
-*{box-sizing:border-box}body{margin:0;background:#191329;color:#fff6d9;font:700 16px system-ui}main{width:min(100% - 28px,980px);margin:5vh auto}header{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:16px}h1{font-size:clamp(44px,10vw,104px);line-height:.86;letter-spacing:-.09em;margin:0;color:#e9ff61;text-shadow:4px 4px #fb569d}header p{margin:0;text-align:right;color:#ffabce}figure{margin:0;position:relative;border:3px solid #fff6d9;box-shadow:7px 7px #fb569d;background:#2e2050}canvas{width:100%;height:auto;display:block}dialog{border:3px solid #ff71b5;background:#24193b;color:inherit;padding:24px;max-width:min(480px,90vw)}dialog::backdrop{background:#130d20cf}button{background:#e9ff61;color:#191329;padding:10px 15px;border:0;font:inherit;cursor:pointer}footer{margin-top:20px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}kbd{border:1px solid #ffabce;border-radius:4px;padding:2px 5px}#hint{margin:14px 0 0;color:#e9ff61;min-height:1.5em}
-</style>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#131817">
+  <title>Rage Cart — After-hours cart return</title>
+  <link rel="stylesheet" href="style.css">
+  <script defer src="game.js"></script>
+</head>
+<body>
 <main>
-<header><h1>RAGE CART</h1><p>PARKING LOT<br>TIME TRIAL</p></header>
-<figure><canvas id="track" width="960" height="400" aria-label="Shopping cart obstacle course"></canvas></figure>
-<p id="hint" role="status"></p>
-<footer><span><kbd>A</kbd> <kbd>D</kbd> Steer · <kbd>Alt</kbd> Sprint · <kbd id="jump-key">F4</kbd> Jump</span><span id="stats"></span></footer>
-<dialog id="result" aria-labelledby="title"><h2 id="title"></h2><p id="message"></p><p id="remap" hidden><label for="binding">New jump key</label> <select id="binding"><option value="Space">Space</option><option value="KeyJ">J</option><option value="KeyZ">Z</option></select></p><button id="retry"></button></dialog>
+  <header class="masthead">
+    <div>
+      <p class="eyebrow">After-hours cart return</p>
+      <h1>RAGE<span>CART</span></h1>
+    </div>
+    <div class="counter"><span>Wipeouts</span><strong id="stats">00</strong></div>
+  </header>
+  <section class="cabinet" aria-label="Game">
+    <div class="track-bar">
+      <span id="stage">01 / Loading bay</span>
+      <progress id="progress" value="0" max="100" aria-label="Course progress"></progress>
+    </div>
+    <canvas id="track" width="960" height="400" aria-label="Shopping cart obstacle course"></canvas>
+    <div class="instructions">
+      <p id="hint" role="status">Hold D to roll. A backs up.</p>
+      <button type="button" id="restart">Restart run</button>
+    </div>
+  </section>
+  <footer class="controls" aria-label="Keyboard controls">
+    <span><kbd>A</kbd> <kbd>D</kbd> Steer</span>
+    <span><kbd>Alt</kbd> Sprint</span>
+    <span><kbd id="jump-key">F4</kbd> Jump</span>
+  </footer>
+  <p class="keyboard-note">Rage Cart plays with a keyboard.</p>
+  <dialog id="result" aria-labelledby="title">
+    <h2 id="title"></h2>
+    <p id="message"></p>
+    <p id="remap" hidden>
+      <label for="binding">New jump key</label>
+      <select id="binding"><option value="Space">Space</option><option value="KeyJ">J</option><option value="KeyZ">Z</option></select>
+    </p>
+    <button type="button" id="retry"></button>
+  </dialog>
 </main>
-<script defer src="game.js"></script>
+</body>
 </html>

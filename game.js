@@ -10,31 +10,38 @@ const message = document.querySelector("#message");
 const retry = document.querySelector("#retry");
 const binding = document.querySelector("#binding");
 const remap = document.querySelector("#remap");
+const stage = document.querySelector("#stage");
+const progress = document.querySelector("#progress");
+const restart = document.querySelector("#restart");
 const keyLabels = {F4: "F4", Space: "Space", KeyJ: "J", KeyZ: "Z"};
 const gameKeys = new Set(["KeyA", "KeyD", "AltLeft", "AltRight", ...Object.keys(keyLabels)]);
 const checkpointKey = "rage-cart-checkpoint";
 const keys = new Set();
 const floor = 312;
-const platforms = [[0, 450], [550, 780], [895, 1180], [1425, 1750]];
+const platforms = [[0, 450], [536, 780], [875, 1180], [1425, 1750]];
 const cart = {x: 65, y: floor, vx: 0, vy: 0, grounded: true};
+const finalCheckpoint = 960;
 let attempts = 0;
 let checkpoint = 65;
 let jumpKey = "F4";
 let sawPrank = false;
 let finished = false;
-let jump = false;
+let jumpBuffer = 0;
+let coyoteTime = 0;
+let camera = 0;
 
 try { sawPrank = localStorage.getItem(checkpointKey) === "reached"; } catch {}
 
 function reset(x) {
   keys.clear();
-  jump = false;
+  jumpBuffer = coyoteTime = 0;
+  camera = Math.max(0, Math.min(x - 275, 790));
   Object.assign(cart, {x, y: floor, vx: 0, vy: 0, grounded: true});
 }
 
 function showResult(won) {
   keys.clear();
-  jump = false;
+  jumpBuffer = 0;
   finished = true;
   title.textContent = won ? "Cart returned." : "noob, you quit lol";
   message.textContent = won ? `You survived the parking lot. Wipeouts: ${attempts}.` : "Pick a new jump key and take another run at the gap.";
@@ -43,18 +50,30 @@ function showResult(won) {
   dialog.showModal();
 }
 
-retry.addEventListener("click", () => {
-  if (cart.x >= 1650) {
-    attempts = 0;
-    checkpoint = 65;
-    jumpKey = "F4";
-    try { localStorage.removeItem(checkpointKey); } catch {}
-  } else {
-    jumpKey = binding.value;
-  }
+function restartRun() {
+  attempts = 0;
+  checkpoint = 65;
+  jumpKey = "F4";
+  try { localStorage.removeItem(checkpointKey); } catch {}
   document.querySelector("#jump-key").textContent = keyLabels[jumpKey];
   reset(checkpoint);
   finished = false;
+}
+
+restart.addEventListener("click", () => {
+  restartRun();
+  restart.blur();
+});
+
+retry.addEventListener("click", () => {
+  if (cart.x >= 1650) {
+    restartRun();
+  } else {
+    jumpKey = binding.value;
+    document.querySelector("#jump-key").textContent = keyLabels[jumpKey];
+    reset(checkpoint);
+    finished = false;
+  }
   dialog.close();
 });
 dialog.addEventListener("cancel", event => event.preventDefault());
@@ -62,7 +81,7 @@ dialog.addEventListener("cancel", event => event.preventDefault());
 window.addEventListener("keydown", event => {
   if (finished || !gameKeys.has(event.code)) return;
   const sprinting = event.altKey || keys.has("AltLeft") || keys.has("AltRight");
-  if (jumpKey === "F4" && event.code === "F4" && sprinting && checkpoint === 960) {
+  if (jumpKey === "F4" && event.code === "F4" && sprinting && checkpoint === finalCheckpoint) {
     // Leave the native shortcut available. Where it is unhandled, try closing the game window.
     if (!event.repeat) {
       window.close();
@@ -71,20 +90,23 @@ window.addEventListener("keydown", event => {
     return;
   }
   event.preventDefault();
-  if (event.repeat) return;
   keys.add(event.code);
-  if (event.code === jumpKey) jump = true;
+  if (!event.repeat && event.code === jumpKey) jumpBuffer = 7;
 });
 window.addEventListener("keyup", event => keys.delete(event.code));
-window.addEventListener("blur", () => { keys.clear(); jump = false; });
+window.addEventListener("blur", () => { keys.clear(); jumpBuffer = 0; });
 
 function step() {
   if (finished) return;
   const direction = Number(keys.has("KeyD")) - Number(keys.has("KeyA"));
   const speed = keys.has("AltLeft") || keys.has("AltRight") ? 11 : 4.8;
   cart.vx += (direction * speed - cart.vx) * (cart.grounded ? .27 : .13);
-  if (cart.grounded && jump) cart.vy = -11;
-  jump = false;
+  coyoteTime = cart.grounded ? 5 : Math.max(0, coyoteTime - 1);
+  if (coyoteTime && jumpBuffer) {
+    cart.vy = -11;
+    jumpBuffer = coyoteTime = 0;
+  }
+  jumpBuffer = Math.max(0, jumpBuffer - 1);
   const previousY = cart.y;
   cart.x = Math.max(18, cart.x + cart.vx);
   cart.vy += .72;
@@ -94,8 +116,9 @@ function step() {
   if (cart.grounded) {
     cart.y = floor;
     cart.vy = 0;
-    if (cart.x >= 935 && cart.x < 1180 && checkpoint !== 960) {
-      checkpoint = 960;
+    if (cart.x >= 560 && checkpoint === 65) checkpoint = 570;
+    if (cart.x >= 935 && cart.x < 1180 && checkpoint !== finalCheckpoint) {
+      checkpoint = finalCheckpoint;
       try { localStorage.setItem(checkpointKey, "reached"); } catch {}
     }
   }
@@ -107,61 +130,187 @@ function step() {
 }
 
 if (sawPrank) {
-  checkpoint = 960;
+  checkpoint = finalCheckpoint;
   reset(checkpoint);
   showResult(false);
 }
 
-function draw() {
-  const camera = Math.max(0, Math.min(cart.x - 275, 830));
-  ctx.fillStyle = "#30204f";
+function drawBackdrop() {
+  const sky = ctx.createLinearGradient(0, 0, 0, 350);
+  sky.addColorStop(0, "#183032");
+  sky.addColorStop(.58, "#385450");
+  sky.addColorStop(1, "#a2926e");
+  ctx.fillStyle = sky;
   ctx.fillRect(0, 0, 960, 400);
-  ctx.fillStyle = "#fc6ea8";
+
+  ctx.fillStyle = "#d9c799";
   ctx.beginPath();
-  ctx.arc(763 - camera * .16, 121, 65, 0, Math.PI * 2);
+  ctx.arc(768 - camera * .09, 105, 36, 0, Math.PI * 2);
   ctx.fill();
-  for (let i = 0; i < 18; i++) {
-    const height = 32 + (i * 47) % 114;
-    ctx.fillStyle = i % 2 ? "#422861" : "#52316e";
-    ctx.fillRect(i * 75 - camera * .38, floor - height, 59, height);
+
+  for (let i = 0; i < 19; i++) {
+    const x = i * 82 - camera * .28;
+    const height = 25 + (i * 53) % 87;
+    const y = 267 - height;
+    ctx.fillStyle = i % 2 ? "#304a46" : "#39534d";
+    ctx.fillRect(x, y, 74, height);
+    ctx.fillStyle = "#a69b72";
+    for (let window = 0; window < 4; window++) {
+      if ((i + window) % 3 === 0) ctx.fillRect(x + 9 + window * 13, y + 11, 4, 2);
+    }
   }
-  ctx.save();
-  ctx.translate(-camera, 0);
+
+  ctx.fillStyle = "#263936";
+  ctx.fillRect(0, 270, 960, 130);
+  ctx.strokeStyle = "#587065";
+  ctx.lineWidth = 1;
+  for (let x = -(camera * .52 % 34); x < 960; x += 34) {
+    ctx.beginPath();
+    ctx.moveTo(x, 267);
+    ctx.lineTo(x, 314);
+    ctx.stroke();
+  }
+  ctx.fillRect(0, 308, 960, 92);
+  for (let x = 130 - camera * .55; x < 960; x += 291) {
+    const light = ctx.createRadialGradient(x + 17, 170, 1, x + 17, 170, 74);
+    light.addColorStop(0, "#f9d99442");
+    light.addColorStop(1, "#f9d99400");
+    ctx.fillStyle = light;
+    ctx.fillRect(x - 57, 96, 148, 148);
+    ctx.fillStyle = "#172826";
+    ctx.fillRect(x, 167, 4, 143);
+    ctx.fillRect(x, 165, 28, 4);
+    ctx.fillStyle = "#f9d994";
+    ctx.fillRect(x + 10, 169, 18, 3);
+  }
+}
+
+function drawPlatforms() {
   for (const [start, end] of platforms) {
-    ctx.fillStyle = "#151221";
+    ctx.fillStyle = "#1b2826";
     ctx.fillRect(start, floor, end - start, 88);
-    ctx.fillStyle = "#e9ff61";
-    ctx.fillRect(start, floor, end - start, 5);
-    ctx.fillStyle = "#5e4771";
-    for (let x = start + 9; x + 22 < end; x += 42) ctx.fillRect(x, floor + 21, 22, 3);
+    ctx.fillStyle = "#46564e";
+    ctx.fillRect(start, floor, end - start, 18);
+    ctx.fillStyle = "#819083";
+    ctx.fillRect(start, floor, end - start, 2);
+    ctx.fillStyle = "#2c3d37";
+    ctx.fillRect(start, floor + 25, end - start, 2);
+    for (let x = start + 15; x + 24 < end; x += 61) {
+      ctx.fillRect(x, floor + 27, 2, 61);
+      ctx.fillStyle = "#b6a46d";
+      ctx.fillRect(x + 7, floor + 10, 23, 2);
+      ctx.fillStyle = "#2c3d37";
+    }
+    for (const edge of [start, end - 25]) {
+      ctx.fillStyle = "#e7b84d";
+      ctx.fillRect(edge, floor, 25, 12);
+      ctx.fillStyle = "#252c27";
+      for (let stripe = 4; stripe < 24; stripe += 8) {
+        ctx.beginPath();
+        ctx.moveTo(edge + stripe, floor);
+        ctx.lineTo(edge + stripe + 4, floor);
+        ctx.lineTo(edge + stripe, floor + 12);
+        ctx.lineTo(edge + stripe - 4, floor + 12);
+        ctx.fill();
+      }
+    }
   }
-  ctx.font = "bold 16px monospace";
-  for (const [x, label] of [[200, "SPRINT TEST"], [418, "JUMP HERE"], [752, "AGAIN"], [1134, "LONG JUMP"], [1650, "CART RETURN"]]) {
-    ctx.fillStyle = "#fff6d9";
-    ctx.textAlign = "center";
-    ctx.fillText(label, x, floor - 61);
-    ctx.fillRect(x - 1, floor - 54, 2, 28);
+}
+
+function drawSigns() {
+  ctx.font = "bold 13px monospace";
+  ctx.textAlign = "center";
+  for (const [x, label, color] of [
+    [216, "SPRINT TEST", "#e8debd"], [418, "JUMP", "#f6cb57"],
+    [570, "CHECKPOINT", "#a9dcc1"], [752, "JUMP", "#f6cb57"],
+    [960, "CHECKPOINT", "#a9dcc1"], [1134, "LONG JUMP", "#f6cb57"],
+    [1650, "CART RETURN", "#a9dcc1"]
+  ]) {
+    const width = ctx.measureText(label).width + 24;
+    ctx.fillStyle = "#263431";
+    ctx.fillRect(x - 2, floor - 57, 4, 57);
+    ctx.fillStyle = "#172523";
+    ctx.fillRect(x - width / 2, floor - 78, width, 26);
+    ctx.strokeStyle = color;
+    ctx.strokeRect(x - width / 2 + .5, floor - 77.5, width - 1, 25);
+    ctx.fillStyle = color;
+    ctx.fillText(label, x, floor - 60);
+  }
+}
+
+function drawCart() {
+  if (cart.grounded) {
+    ctx.fillStyle = "#10171555";
+    ctx.beginPath();
+    ctx.ellipse(cart.x, floor - 1, 25, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
   }
   ctx.translate(cart.x, cart.y - 15);
-  ctx.rotate(cart.grounded ? 0 : Math.max(-.25, Math.min(.25, cart.vy * .024)));
-  ctx.strokeStyle = "#fff6d9";
-  ctx.fillStyle = "#fb569d";
-  ctx.lineWidth = 3;
+  ctx.rotate(Math.max(-.22, Math.min(.22, cart.vy * .022)));
+  ctx.lineJoin = "round";
+  ctx.fillStyle = "#3a4540";
+  ctx.strokeStyle = "#ecede1";
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(-25, -16); ctx.lineTo(-18, -16); ctx.lineTo(-11, 5);
-  ctx.lineTo(13, 5); ctx.lineTo(18, -13); ctx.lineTo(-17, -13);
-  ctx.fill(); ctx.stroke();
-  for (const x of [-9, 11]) {
-    ctx.beginPath(); ctx.arc(x, 11, 4, 0, Math.PI * 2); ctx.fill();
+  ctx.moveTo(-19, -19);
+  ctx.lineTo(23, -19);
+  ctx.lineTo(17, -4);
+  ctx.lineTo(-13, -4);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-29, -23);
+  ctx.lineTo(-22, -23);
+  ctx.lineTo(-11, 5);
+  ctx.lineTo(17, 5);
+  ctx.moveTo(-15, -11);
+  ctx.lineTo(20, -11);
+  for (let x = -9; x < 20; x += 7) {
+    ctx.moveTo(x, -18);
+    ctx.lineTo(x - 1, -5);
   }
+  ctx.stroke();
+  ctx.fillStyle = "#f6cb57";
+  ctx.fillRect(-31, -25, 10, 4);
+  for (const x of [-10, 15]) {
+    ctx.fillStyle = "#131817";
+    ctx.beginPath();
+    ctx.arc(x, 10, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#d8dacc";
+    ctx.beginPath();
+    ctx.arc(x, 10, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function draw() {
+  const target = Math.max(0, Math.min(cart.x - 275, 790));
+  camera += (target - camera) * .16;
+  drawBackdrop();
+  ctx.save();
+  ctx.translate(-camera, 0);
+  drawPlatforms();
+  drawSigns();
+  drawCart();
   ctx.restore();
-  const instruction = cart.x < 150 ? "Hold D to roll. A backs up."
-    : cart.x < 330 ? "Hold Alt while rolling to sprint. Release it before the first gap."
-    : cart.x < 935 ? `Keep rolling and tap ${keyLabels[jumpKey]} at the edge to jump.`
-    : `That gap is too wide. Hold Alt to sprint, then press ${keyLabels[jumpKey]} to jump farther.`;
+
+  const [label, instruction] = cart.x < 150
+    ? ["01 / Loading bay", "Hold D to roll. A backs up."]
+    : cart.x < 330
+      ? ["01 / Loading bay", "Hold Alt while rolling to sprint. Release it before the first gap."]
+      : cart.x < 935
+        ? ["02 / Practice gaps", `Keep rolling and tap ${keyLabels[jumpKey]} at the jump sign.`]
+        : cart.x < 1425
+          ? ["03 / Long jump", `Build speed with Alt. Keep holding it and press ${keyLabels[jumpKey]} at the jump sign.`]
+          : ["04 / Cart return", "Keep rolling to the cart return."];
+  if (stage.textContent !== label) stage.textContent = label;
   if (hint.textContent !== instruction) hint.textContent = instruction;
-  const count = `Wipeouts · ${attempts}`;
+  const count = String(attempts).padStart(2, "0");
   if (stats.textContent !== count) stats.textContent = count;
+  const completion = Math.min(100, Math.max(0, Math.round((cart.x - 65) / 15.85)));
+  if (progress.value !== completion) progress.value = completion;
 }
 
 let lastFrame;
@@ -177,3 +326,4 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+
